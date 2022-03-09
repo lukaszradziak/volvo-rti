@@ -12,7 +12,8 @@ const char display_modes[] = {0x40, 0x45, 0x4C, 0x46};
 const char brightness_levels[] = {0x19, 0x20, 0x61, 0x62, 0x23, 0x64, 0x25, 0x26, 0x67, 0x68, 0x29, 0x2A, 0x2C, 0x6B, 0x6D, 0x6E, 0x2F};
 
 int current_display_mode = RTI_OFF;
-char current_brightness_level = 12;
+char current_brightness_level = 16;
+int lastReverseData = 0;
 
 void rtiWrite(char byte) {
   Serial1.print(byte);
@@ -63,8 +64,8 @@ void loop() {
 
       if(rx_frame.data.u8[5] == 0x49){
         printf("reset\n\n");
-        current_brightness_level = 12;
-        EEPROM.writeChar(1, 12);
+        current_brightness_level = 16;
+        EEPROM.writeChar(1, 16);
         EEPROM.commit();
       } else if(rx_frame.data.u8[5] == 0x51){
         printf("zero\n\n");
@@ -73,8 +74,8 @@ void loop() {
         EEPROM.commit();
       } else if(rx_frame.data.u8[5] == 0x43){
         printf("up\n\n");
-        current_display_mode = RTI_PAL;
-        EEPROM.writeChar(0, RTI_PAL);
+        current_display_mode = RTI_NTSC;
+        EEPROM.writeChar(0, RTI_NTSC);
         EEPROM.commit();
       } else if(rx_frame.data.u8[5] == 0x45){
         printf("bottom\n\n");
@@ -82,6 +83,25 @@ void loop() {
         EEPROM.writeChar(0, RTI_OFF);
         EEPROM.commit();
       }
+    } else if(rx_frame.MsgID == 0x01213FFC){
+      int data = rx_frame.data.u8[2] >> 4 & 0x0F;
+
+      if(lastReverseData != data){
+        lastReverseData = data;
+
+        if(data == 7){
+          Serial.println("reverse");
+          if(EEPROM.readChar(1) == 0){
+            current_brightness_level = 16;
+          }
+        } else {
+          Serial.println("normal");
+          if(EEPROM.readChar(1) == 0){
+            current_brightness_level = 0;
+          }
+        }
+      }
+
     }
   }
 }
