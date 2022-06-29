@@ -30,7 +30,7 @@ void task0(void* param){
 
 void setup() {
   Serial.begin(115200);
-  Serial1.begin(2400, SERIAL_8N1, -1, 23);
+  Serial1.begin(2400, SERIAL_8N1, -1, 26); // PIN 26 or 23
 
   EEPROM.begin(128);
 
@@ -41,6 +41,11 @@ void setup() {
 
   current_display_mode = EEPROM.readChar(0);
   current_brightness_level = EEPROM.readChar(1);
+
+  // test in car - START
+  current_display_mode = RTI_NTSC;
+  current_brightness_level = 16;
+  // test in car - END
 
   CAN_cfg.speed = CAN_SPEED_125KBPS;
   CAN_cfg.tx_pin_id = GPIO_NUM_5;
@@ -55,13 +60,15 @@ void loop() {
   CAN_frame_t rx_frame;
   if (xQueueReceive(CAN_cfg.rx_queue, &rx_frame, 3 * portTICK_PERIOD_MS) == pdTRUE) {
 
-    if(rx_frame.MsgID == 0x00400066){
-      // printf(" from 0x%08X, DLC %d, Data ", rx_frame.MsgID,  rx_frame.FIR.B.DLC);
-      // for (int i = 0; i < rx_frame.FIR.B.DLC; i++) {
-      //   printf("0x%02X ", rx_frame.data.u8[i]);
-      // }
-      // printf("\n");
+    // test can
+    printf(" from 0x%08X, DLC %d, Data ", rx_frame.MsgID,  rx_frame.FIR.B.DLC);
+    for (int i = 0; i < rx_frame.FIR.B.DLC; i++) {
+      printf("0x%02X ", rx_frame.data.u8[i]);
+    }
+    printf("\n");
 
+    if(rx_frame.MsgID == 0x00400066){
+      
       if(rx_frame.data.u8[5] == 0x49){
         printf("reset\n\n");
         current_brightness_level = 16;
